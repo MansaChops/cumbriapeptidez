@@ -4,8 +4,14 @@ import { Menu, Search, ShoppingBag, X } from 'lucide-react'
 import { formatMoney, img, site } from '@/config/site'
 import { useCart } from '@/lib/cart'
 import { legalPages } from '@/data/content'
+import { getCatalogue } from '@/server/catalogue'
+import type { Product } from '@/lib/catalogue'
 
 export const Route = createFileRoute('/_store')({
+  // Products, prices and stock come from the database via a server function. Pages read this
+  // through useCatalogue(); it refreshes in the background at most every 30 seconds.
+  loader: (): Promise<Array<Product>> => getCatalogue(),
+  staleTime: 30_000,
   component: StoreLayout,
 })
 

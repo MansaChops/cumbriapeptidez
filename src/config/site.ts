@@ -29,5 +29,10 @@ export const formatMoney = (value: number) =>
     currency: site.currency,
   }).format(value)
 
+/**
+ * Image CDN URL. `file` is either a bundled image in public/img ("bpc-157.png") or a site path
+ * ("/media/products/…", an uploaded image served from Netlify Blobs). Either way the Image CDN
+ * fetches it from this site, then resizes and converts it.
+ */
 export const img = (file: string, w: number, h?: number) =>
-  `/.netlify/images?url=/img/${file}&w=${w}${h ? `&h=${h}&fit=cover` : ''}&fm=webp`
+  `/.netlify/images?url=${encodeURIComponent(file.startsWith('/') ? file : `/img/${file}`)}&w=${w}${h ? `&h=${h}&fit=cover` : ''}&fm=webp`

@@ -1,6 +1,7 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Search, X } from 'lucide-react'
-import { categories, fromPrice, products, totalStock } from '@/data/fixtures'
+import { categories, fromPrice, totalStock } from '@/lib/catalogue'
+import { useCatalogue } from '@/lib/cart'
 import { ProductCard } from '@/components/store/ProductCard'
 import { site } from '@/config/site'
 
@@ -23,6 +24,7 @@ export const Route = createFileRoute('/_store/shop')({
 })
 
 function Shop() {
+  const products = useCatalogue()
   const search = Route.useSearch()
   const navigate = useNavigate({ from: '/shop' })
   const set = (patch: Partial<ShopSearch>) => navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })

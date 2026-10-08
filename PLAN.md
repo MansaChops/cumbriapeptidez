@@ -26,7 +26,7 @@ are recorded and retried.
 - SEO basics: per-page titles and descriptions, Open Graph, Product JSON-LD, sitemap.xml, robots.txt
 - All data comes from `src/data/fixtures.ts` (clearly labelled demo data)
 
-## Milestone 2 — Database & catalogue
+## ✅ Milestone 2 — Database & catalogue (done)
 
 - Drizzle schema in `db/schema.ts`: users, customers, products, product_variants, orders,
   order_items, payments, inventory_movements, notifications, audit_logs, webhook_events,
@@ -36,6 +36,8 @@ are recorded and retried.
 - Replace the fixture reads in the storefront with server functions. Prices and stock are always
   read server-side.
 - Product images stored in Netlify Blobs and served through the Image CDN
+- Also landed early: stock decremented atomically at order time, admin sign-in with Identity roles
+  guarding `/admin` and the admin APIs, `/admin/products` (image upload), `/admin/data`
 
 ## Milestone 3 — Authentication, roles & audit
 

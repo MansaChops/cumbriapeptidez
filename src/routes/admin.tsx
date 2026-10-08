@@ -1,9 +1,12 @@
 import { Link, Outlet, createFileRoute, redirect } from '@tanstack/react-router'
+import { logout } from '@netlify/identity'
 import {
   BarChart3,
   Boxes,
   ClipboardList,
+  Database,
   LayoutGrid,
+  LogOut,
   Package,
   Plug,
   ScrollText,
@@ -12,10 +15,16 @@ import {
 } from 'lucide-react'
 import { img, site } from '@/config/site'
 import { useOrders } from '@/lib/demo-orders'
+import { getAdminSession, type AdminSession } from '@/server/admin'
 
 export const Route = createFileRoute('/admin')({
-  beforeLoad: ({ location }) => {
+  // Every /admin page requires a Netlify Identity user with an admin role, checked on the server.
+  // The admin API functions check again independently, so this is not the only guard.
+  beforeLoad: async ({ location }): Promise<{ admin: AdminSession }> => {
+    const admin = await getAdminSession()
+    if (!admin) throw redirect({ to: '/admin/login', search: { next: location.pathname } })
     if (location.pathname === '/admin' || location.pathname === '/admin/') throw redirect({ to: '/admin/dashboard' })
+    return { admin }
   },
   head: () => ({ meta: [{ title: `Admin — ${site.name}` }, { name: 'robots', content: 'noindex, nofollow' }] }),
   component: AdminLayout,
@@ -24,10 +33,11 @@ export const Route = createFileRoute('/admin')({
 const live = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutGrid },
   { to: '/admin/orders', label: 'Orders', icon: ClipboardList },
+  { to: '/admin/products', label: 'Products', icon: Package },
+  { to: '/admin/data', label: 'Demo data', icon: Database },
 ] as const
 
 const upcoming = [
-  { label: 'Products', icon: Package },
   { label: 'Inventory', icon: Boxes },
   { label: 'Customers', icon: Users },
   { label: 'Analytics', icon: BarChart3 },
@@ -36,7 +46,13 @@ const upcoming = [
   { label: 'Settings', icon: Settings },
 ]
 
+const signOut = async () => {
+  await logout().catch(() => {})
+  window.location.href = '/admin/login'
+}
+
 function AdminLayout() {
+  const { admin } = Route.useRouteContext()
   const orders = useOrders()
   const toPack = orders.filter((o) => o.fulfilmentStatus === 'NEW' || o.fulfilmentStatus === 'PACKING').length
 
@@ -74,21 +90,26 @@ function AdminLayout() {
           ))}
         </nav>
         <div className="mt-auto rounded-xl border border-line bg-card p-3 text-xs">
-          <p className="font-medium">Owner</p>
-          <p className="text-ink-3">Demo session</p>
+          <p className="font-medium truncate" title={admin.email}>{admin.email}</p>
+          <p className="text-ink-3 capitalize">{admin.role.toLowerCase()}</p>
+          <button onClick={signOut} className="mt-2 inline-flex items-center gap-1.5 text-ink-2 hover:text-ink"><LogOut size={13} /> Sign out</button>
         </div>
       </aside>
 
       <div className="min-w-0 pb-20 md:pb-0">
         <div className="no-print bg-amber-soft text-ink-2 text-xs px-5 py-2 flex flex-wrap gap-x-2">
-          <strong className="font-medium text-ink">Demo data.</strong>
-          Orders and customers below are fictional. Sign-in, roles and live data connect in the next milestones.
+          <strong className="font-medium text-ink">Sample screens.</strong>
+          Dashboard and Orders still show fictional sample orders until the orders milestone. Products and Demo data read the live database.
+        </div>
+        <div className="no-print md:hidden flex items-center justify-between gap-3 border-b border-line px-4 py-2 text-xs">
+          <span className="truncate text-ink-2">{admin.email} · <span className="capitalize">{admin.role.toLowerCase()}</span></span>
+          <button onClick={signOut} className="inline-flex items-center gap-1.5 text-ink-2"><LogOut size={13} /> Sign out</button>
         </div>
         <Outlet />
       </div>
 
       {/* Mobile bottom tabs */}
-      <nav className="no-print md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-line bg-paper/95 backdrop-blur grid grid-cols-3 text-[11px]">
+      <nav className="no-print md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-line bg-paper/95 backdrop-blur grid grid-cols-5 text-[11px]">
         {live.map(({ to, label, icon: Icon }) => (
           <Link key={to} to={to} className="flex flex-col items-center gap-1 py-2.5 text-ink-3" activeProps={{ className: '!text-ink' }}>
             <Icon size={20} />

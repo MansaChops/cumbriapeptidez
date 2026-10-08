@@ -1,17 +1,15 @@
 import { useState } from 'react'
-import { Link, createFileRoute, notFound } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft, CalendarClock, Check, Minus, Plus, ShieldCheck, Truck } from 'lucide-react'
 import { formatMoney, img, site } from '@/config/site'
-import { categories, findProduct, maxQty, packPrice, priceLabel, products, qtyStep, unitPrice } from '@/data/fixtures'
-import { cart, useCart } from '@/lib/cart'
+import { categories, maxQty, packPrice, priceLabel, qtyStep, unitPrice, type Product } from '@/lib/catalogue'
+import { cart, useCart, useCatalogue } from '@/lib/cart'
+import { getProduct } from '@/server/catalogue'
 import { ProductCard, StockTag } from '@/components/store/ProductCard'
 
 export const Route = createFileRoute('/_store/product/$slug')({
-  loader: ({ params }) => {
-    const product = findProduct(params.slug)
-    if (!product || !product.active) throw notFound()
-    return product
-  },
+  // Read straight from the database, so the page always shows the current price and stock.
+  loader: ({ params }): Promise<Product> => getProduct({ data: { slug: params.slug } }),
   head: ({ loaderData: p }) =>
     p
       ? {
@@ -48,6 +46,7 @@ export const Route = createFileRoute('/_store/product/$slug')({
 function ProductPage() {
   const product = Route.useLoaderData()
   const { items } = useCart()
+  const products = useCatalogue()
   const firstAvailable = product.variants.find((v) => v.stock > 0) ?? product.variants[0]
   const [variantId, setVariantId] = useState(firstAvailable.id)
   const [qty, setQty] = useState(qtyStep(firstAvailable))

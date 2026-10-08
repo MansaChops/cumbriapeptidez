@@ -1,11 +1,12 @@
 import { useSyncExternalStore } from 'react'
-import { clampQty, findVariant, unitPrice } from '@/data/fixtures'
+import { getRouteApi } from '@tanstack/react-router'
+import { clampQty, findVariantIn, unitPrice, type Product } from '@/lib/catalogue'
 import { site } from '@/config/site'
 
 /**
- * Persistent basket. Only variant IDs and quantities are stored in the browser —
- * names, prices and stock are always re-derived from the catalogue (and, once the
- * backend lands, re-validated server-side at checkout).
+ * Persistent basket. Only variant IDs and quantities are stored in the browser. Names, prices
+ * and stock come from the catalogue the server loaded from the database (the `/_store` route
+ * loader), and the server re-prices and re-checks everything when the order is placed.
  */
 export type CartLine = { variantId: string; quantity: number }
 
@@ -13,6 +14,9 @@ const KEY = 'cumbria.cart.v1'
 const listeners = new Set<() => void>()
 let lines: Array<CartLine> = []
 let loaded = false
+// Latest server catalogue, used to snap quantities to what can be bought. Empty until loaded,
+// in which case quantities are kept as they are.
+let catalogue: Array<Product> = []
 
 const load = () => {
   if (loaded || typeof window === 'undefined') return
@@ -27,7 +31,8 @@ const load = () => {
 const commit = (next: Array<CartLine>) => {
   lines = next
     .map((l) => {
-      const found = findVariant(l.variantId)
+      if (!catalogue.length) return l
+      const found = findVariantIn(catalogue, l.variantId)
       return { ...l, quantity: found ? clampQty(found.variant, l.quantity) : 0 }
     })
     .filter((l) => l.quantity > 0)
@@ -68,10 +73,17 @@ export const cart = {
   },
 }
 
+const storeRoute = getRouteApi('/_store')
+
+/** The server-loaded catalogue (active products and variants, current prices and stock). */
+export const useCatalogue = (): Array<Product> => storeRoute.useLoaderData()
+
 export function useCart() {
+  const products = useCatalogue()
+  catalogue = products
   const raw = useSyncExternalStore(subscribe, snapshot, () => EMPTY)
   const items = raw.flatMap((line) => {
-    const found = findVariant(line.variantId)
+    const found = findVariantIn(products, line.variantId)
     if (!found) return []
     const price = unitPrice(found.variant)
     return [{ ...line, ...found, price, lineTotal: price * line.quantity }]

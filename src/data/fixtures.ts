@@ -1,8 +1,9 @@
 /**
- * DEMO DATA — every record in this file is fictional and exists only so the
- * storefront and admin can be explored before the database is connected.
- * No real customer information is used. A later milestone replaces these
- * fixtures with Netlify Database queries; delete this file before launch.
+ * DEMO DATA — every record in this file is fictional. The storefront no longer reads it: products,
+ * prices and stock come from the database. It is used only by:
+ * - the admin Dashboard and Orders sample screens (until the orders milestone), and
+ * - the demo seed (netlify/lib/demo-data.ts), which copies the customers and orders into the
+ *   database flagged is_demo = true so they can be removed with "Remove all demo data".
  */
 
 export const DEMO = true
