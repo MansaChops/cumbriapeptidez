@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { formatMoney, img } from '@/config/site'
-import { categories, fromPrice, packPrice, priceLabel, totalStock, type Product } from '@/data/fixtures'
+import { categories, fromPrice, packPrice, priceLabel, totalStock, type Product } from '@/lib/catalogue'
 
 export function StockTag({ stock, threshold, preOrder = false }: { stock: number; threshold: number; preOrder?: boolean }) {
   if (stock === 0) return <span className="label text-oxblood">{preOrder ? 'Pre-orders full' : 'Out of stock'}</span>

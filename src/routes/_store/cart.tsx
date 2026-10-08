@@ -1,10 +1,12 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import { AlertTriangle, ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
 import { formatMoney, img, site } from '@/config/site'
 import { cart, useCart } from '@/lib/cart'
-import { maxQty, qtyStep } from '@/data/fixtures'
+import { maxQty, qtyStep } from '@/lib/catalogue'
 import { Summary } from '@/components/store/Summary'
 import { PreOrderNotice, PreOrderTag } from '@/components/store/PreOrderNotice'
+import { validateBasket } from '@/server/catalogue'
 
 export const Route = createFileRoute('/_store/cart')({
   head: () => ({ meta: [{ title: `Basket — ${site.name}` }, { name: 'robots', content: 'noindex' }] }),
@@ -30,6 +32,7 @@ function Cart() {
     <div className="mx-auto max-w-7xl px-5 pt-12">
       <h1 className="font-display text-5xl md:text-6xl">Basket</h1>
       <PreOrderNotice names={items.filter((i) => i.product.preOrder).map((i) => i.product.name)} className="mt-6 max-w-3xl" />
+      <BasketCheck items={items} />
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_380px]">
         <div>
           <div className="hidden md:grid grid-cols-[1fr_8rem_6rem_6rem_2rem] gap-4 label text-ink-3 border-b border-line pb-3">
@@ -90,6 +93,43 @@ function Cart() {
           <p className="text-[11px] text-ink-3 mt-4 text-center">Prices and stock are re-checked when you pay.</p>
         </aside>
       </div>
+    </div>
+  )
+}
+
+type Issue = Awaited<ReturnType<typeof validateBasket>>['issues'][number]
+
+/** Re-checks the basket against live database stock and prices, and offers to fix any problems. */
+function BasketCheck({ items }: { items: ReturnType<typeof useCart>['items'] }) {
+  const router = useRouter()
+  const [issues, setIssues] = useState<Array<Issue>>([])
+  const key = items.map((i) => `${i.variantId}:${i.quantity}`).join(',')
+
+  useEffect(() => {
+    let cancelled = false
+    validateBasket({ data: { items: items.map(({ variantId, quantity }) => ({ variantId, quantity })) } })
+      .then((r) => {
+        if (cancelled) return
+        setIssues(r.issues)
+        // Prices or stock changed since the page loaded: refresh the catalogue.
+        const stale = r.lines.some((l) => items.find((i) => i.variantId === l.variantId)?.price !== l.unitPricePence / 100)
+        if (r.issues.length || stale) router.invalidate()
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [key])
+
+  if (!issues.length) return null
+  const fix = () => issues.forEach((i) => (i.maxQuantity > 0 ? cart.set(i.variantId, i.maxQuantity) : cart.remove(i.variantId)))
+  return (
+    <div role="alert" className="mt-6 max-w-3xl rounded-xl bg-oxblood-soft px-4 py-3 text-sm text-oxblood">
+      <p className="flex items-center gap-2 font-medium"><AlertTriangle size={16} /> Some items have changed since you added them</p>
+      <ul className="mt-2 grid gap-1 text-ink-2">
+        {issues.map((i) => <li key={i.variantId}>{i.message}</li>)}
+      </ul>
+      <button onClick={fix} className="mt-3 underline">Update my basket</button>
     </div>
   )
 }

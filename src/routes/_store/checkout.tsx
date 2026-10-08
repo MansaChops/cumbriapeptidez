@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { ArrowLeft, Lock, Pencil } from 'lucide-react'
 import { formatMoney, img, site } from '@/config/site'
 import { cart, useCart } from '@/lib/cart'
@@ -66,6 +66,7 @@ function Checkout() {
   const basket = useCart()
   const { items, subtotal, shipping, total } = basket
   const navigate = useNavigate()
+  const router = useRouter()
   const [step, setStep] = useState<'details' | 'review'>('details')
   const [d, setD] = useState<Details>(empty)
   const [errors, setErrors] = useState<ReturnType<typeof validate>>({})
@@ -123,6 +124,8 @@ function Checkout() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || !data.orderNumber) {
+        // Stock or availability changed: reload the catalogue so the basket shows current limits.
+        if (res.status === 409) router.invalidate()
         throw Object.assign(new Error(data.error ?? 'We couldn’t place your order. Please try again.'), { status: res.status, body: data, customerMessage: !!data.error })
       }
       const order = data as PlacedOrder

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.output/
+.vinxi/
+.tanstack/
+.netlify/state.json
+.netlify/functions-serve/
+.netlify/blobs-serve/
+.netlify/edge-functions-serve/
+.netlify/db/
+.netlify/plugins/
+.netlify/netlify-agent-runner-context.md
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

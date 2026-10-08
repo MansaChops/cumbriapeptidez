@@ -19,14 +19,46 @@ type Snapshot = {
   total: number
 }
 
+type LiveStatus = { paymentStatus: string; fulfilmentStatus: string; trackingNumber: string | null }
+
+const paymentLabel: Record<string, string> = {
+  PENDING: 'Awaiting payment',
+  PAID: 'Paid',
+  FAILED: 'Payment failed',
+  CANCELLED: 'Cancelled',
+  REFUNDED: 'Refunded',
+  PARTIALLY_REFUNDED: 'Partly refunded',
+}
+const fulfilmentLabel: Record<string, string> = {
+  NEW: 'Received',
+  PACKING: 'Being packed',
+  PACKED: 'Packed',
+  SHIPPED: 'Shipped',
+  COMPLETED: 'Delivered',
+  CANCELLED: 'Cancelled',
+  REFUNDED: 'Refunded',
+}
+
 function OrderConfirmed() {
   const [snap, setSnap] = useState<Snapshot | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [live, setLive] = useState<LiveStatus | null>(null)
   useEffect(() => {
     // Written by checkout only after the order is saved and Netlify Forms has accepted it.
     try {
       const raw = JSON.parse(sessionStorage.getItem('cumbria.lastCheckout') ?? 'null')
-      if (raw?.orderNumber) setSnap(raw)
+      if (raw?.orderNumber) {
+        setSnap(raw)
+        // Status always comes from the database. Reaching this page never marks anything paid.
+        fetch('/api/order-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderNumber: raw.orderNumber, email: raw.details?.email }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((s) => s && setLive(s))
+          .catch(() => {})
+      }
     } catch {}
     setLoaded(true)
   }, [])
@@ -61,6 +93,12 @@ function OrderConfirmed() {
         <p className="mt-4 text-ink-2">
           Order number <span className="font-mono text-ink bg-paper-2 rounded px-2 py-0.5">{snap.orderNumber}</span>
         </p>
+        {live && (
+          <p className="mt-3 flex justify-center gap-4 text-sm">
+            <span><span className="text-ink-3">Status:</span> {fulfilmentLabel[live.fulfilmentStatus] ?? live.fulfilmentStatus}</span>
+            <span><span className="text-ink-3">Payment:</span> {paymentLabel[live.paymentStatus] ?? live.paymentStatus}</span>
+          </p>
+        )}
         <p className="text-sm text-ink-3 mt-2">
           Received{snap.createdAt && ` ${new Date(snap.createdAt).toLocaleString(site.locale, { timeZone: 'Europe/London', dateStyle: 'medium', timeStyle: 'short' })}`}. We’ll contact you at {snap.details.email} with updates.
         </p>

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { HeadContent, Link, Scripts, createRootRoute } from '@tanstack/react-router'
 import { site } from '@/config/site'
 
@@ -36,11 +37,23 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="grain min-h-screen">
+        <IdentityLinkRedirect />
         {children}
         <Scripts />
       </body>
     </html>
   )
+}
+
+// Netlify Identity emails (admin invites, password resets) link to the site root with a token in
+// the hash. Send those to the admin sign-in page, which completes the flow.
+function IdentityLinkRedirect() {
+  useEffect(() => {
+    if (/(invite|recovery|confirmation|email_change)_token=/.test(location.hash) && location.pathname !== '/admin/login') {
+      location.replace(`/admin/login${location.hash}`)
+    }
+  }, [])
+  return null
 }
 
 export function StatusPage({ code, title, body }: { code: string; title: string; body: string }) {

@@ -1,7 +1,8 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowRight, ArrowUpRight, Mail, Phone } from 'lucide-react'
 import { formatMoney, img, site } from '@/config/site'
-import { categories, products } from '@/data/fixtures'
+import { categories } from '@/lib/catalogue'
+import { useCatalogue } from '@/lib/cart'
 import { faqs, home, reasons } from '@/data/content'
 import { ProductCard } from '@/components/store/ProductCard'
 
@@ -10,6 +11,7 @@ export const Route = createFileRoute('/_store/')({
 })
 
 function Home() {
+  const products = useCatalogue()
   const featured = products.filter((p) => p.featured && p.active)
 
   return (
